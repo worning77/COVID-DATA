@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>three.js webgl - marching cubes</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link type="text/css" rel="stylesheet" href="main.css">
+</head>
+
+<body>
+
+	<div id="container"></div>
+	<div class="wrap-time">
+		<input type="range" min="0" max="650" value="300" class="slider" id="myRange">
+		<div class="text" id="info">Description</div>
+	</div>
+	<div class="text" id="title">US Covid daily death <span id="deathNumber">0</span></div>
+	<ul class="text" id="states"></ul>
+	<div class="btn-group">
+		<button class="btn" id="switch-us">show US</button>
+		<button class="btn" id="switch-states">show States</button>
+		<button class="btn" id="pause">Pause</button>
+	</div>
+
+
+	<script src="https://d3js.org/d3.v7.min.js"></script>
+	<script type="module">
+
+
+		import * as THREE from './jsm/three.module.js';
+
+		import Stats from './jsm/libs/stats.module.js';
+
+		import { GUI } from './jsm/libs/dat.gui.module.js';
+		import { OrbitControls } from './jsm/controls/OrbitControls.js';
+		import { MarchingCubes } from './jsm/objects/MarchingCubes.js';
+		import { FontLoader } from './jsm/loader/FontLoader.js';
+		import { TextGeometry } from './jsm/geo/TextGeometry.js';
+
+
+		let container;
+		let camera, scene, renderer;
+		let materials, current_material;
+		let light, pointLight, ambientLight;
+		let effect, resolution;
+		let effectController;
+
+		let MAX;
+
+		const clock = new THREE.Clock();
+		let time = 0;
+		let timeOld = 0;
+		let timeNew = 0;
+		let RenderTimes = 300;
+		let fraction = 0 ;
+
+		let UsDailyDeath;
+		let statesDailyDeaths;
+		let USRange, StateRange;
+		let color = [0,6];
+
+		let States = document.getElementById('states');
+
+		// let line;
+		 let points = [];
+		 let points2 = [];
+		 let sphere;
+		 let pointsPath = new THREE.CurvePath();
+
+		let isPlay = true;
+
+		let viewPoint = 'US'
+
+
+
+		init();
+
+
+		function loadData() {
+			//const loader = new THREE.FileLoader();
+			let statesGroupedDeath;
+
+			usLoad();
+
+			// cleaning functions
+			let groupBy = (objectArray, property) => {
+			return objectArray.reduce((acc, obj) => {
+				const key = obj[property];
+				if (!acc[key]) {
+				acc[key] = [];
+				}
+				acc[key].push(obj);
+				return acc;
+			}, {});
+			};
+
+			let convertObj2Ary = obj => {
+			return Object.entries(obj);
+			};
+
+			async function usLoad() {
+				let nationalCovidDataRaw = await d3.csv('https://raw.githubusercontent.com/nytimes/covid-19-data/master/rolling-averages/us.csv', d3.autoType)
+				let stateCovidDataRaw =  await d3.csv('https://raw.githubusercontent.com/nytimes/covid-19-data/master/rolling-averages/us-states.csv', d3.autoType)
+
+				Promise.all([nationalCovidDataRaw, stateCovidDataRaw]).then(val => {
+					UsDailyDeath = val[0].map(data => {
+						return {
+							date: data.date,
+							dailyDeaths: data.deaths
+						};
+					});
+
+					let USDeath = [...new Set(UsDailyDeath.map(d => d.dailyDeaths * 0.007))];
+					USRange = d3.extent(USDeath);
+
+					// clean states data and reconstruct
+					statesGroupedDeath = groupBy(val[1], "date");
+					statesDailyDeaths = convertObj2Ary(statesGroupedDeath).map(
+						data => {
+							return {
+								date: data[1][0].date,
+								states: data[1]
+									.map(states => {
+									return {
+										id: states.geoid,
+										state: states.state,
+										dailyDeath: states.deaths
+									};
+								})
+							};
+						}
+					);
+					let stateDeath;
+					let Tem = [
+						{id: 'USA-60', state: 'American Samoa', dailyDeath: 0},
+						{id: 'USA-69', state: 'Northern Mariana Islands', dailyDeath: 0} ,
+						{id: 'USA-66', state: 'Guam', dailyDeath: 0},
+						{id: 'USA-72', state: 'Puerto Rico', dailyDeath: 0},
+						{id: 'USA-78', state: 'Virgin Islands', dailyDeath: 0},
+						{id: 'USA-56', state: 'Wyoming', dailyDeath: 0},
+						{id: 'USA-55', state: 'Wisconsin', dailyDeath: 0},
+						{id: 'USA-54', state: 'West Virginia', dailyDeath: 0},
+						{id: 'USA-53', state: 'Washington', dailyDeath: 0},
+						{id: 'USA-51', state: 'Virginia', dailyDeath: 0},
+						{id: 'USA-50', state: 'Vermont', dailyDeath: 0},
+						{id: 'USA-49', state: 'Utah', dailyDeath: 0},
+						{id: 'USA-48', state: 'Texas', dailyDeath: 0},
+						{id: 'USA-47', state: 'Tennessee', dailyDeath: 0},
+						{id: 'USA-46', state: 'South Dakota', dailyDeath: 0},
+						{id: 'USA-45', state: 'South Carolina', dailyDeath: 0},
+						{id: 'USA-44', state: 'Rhode Island', dailyDeath: 0},
+						{id: 'USA-42', state: 'Pennsylvania', dailyDeath: 0},
+						{id: 'USA-41', state: 'Oregon', dailyDeath: 0},
+						{id: 'USA-40', state: 'Oklahoma', dailyDeath: 0},
+						{id: 'USA-39', state: 'Ohio', dailyDeath: 0},
+						{id: 'USA-38', state: 'North Dakota', dailyDeath: 0},
+						{id: 'USA-37', state: 'North Carolina', dailyDeath: 0},
+						{id: 'USA-36', state: 'New York', dailyDeath: 0},
+						{id: 'USA-35', state: 'New Mexico', dailyDeath: 0},
+						{id: 'USA-34', state: 'New Jersey', dailyDeath: 0},
+						{id: 'USA-33', state: 'New Hampshire', dailyDeath: 0},
+						{id: 'USA-32', state: 'Nevada', dailyDeath: 0},
+						{id: 'USA-31', state: 'Nebraska', dailyDeath: 0},
+						{id: 'USA-30', state: 'Montana', dailyDeath: 0},
+						{id: 'USA-29', state: 'Missouri', dailyDeath: 0},
+						{id: 'USA-28', state: 'Mississippi', dailyDeath: 0},
+						{id: 'USA-27', state: 'Minnesota', dailyDeath: 0},
+						{id: 'USA-26', state: 'Michigan', dailyDeath: 0},
+						{id: 'USA-25', state: 'Massachusetts', dailyDeath: 0},
+						{id: 'USA-24', state: 'Maryland', dailyDeath: 0},
+						{id: 'USA-23', state: 'Maine', dailyDeath: 0},
+						{id: 'USA-22', state: 'Louisiana', dailyDeath: 0},
+						{id: 'USA-21', state: 'Kentucky', dailyDeath: 0},
+						{id: 'USA-20', state: 'Kansas', dailyDeath: 0},
+						{id: 'USA-19', state: 'Iowa', dailyDeath: 0},
+						{id: 'USA-18', state: 'Indiana', dailyDeath: 0},
+						{id: 'USA-17', state: 'Illinois', dailyDeath: 0},
+						{id: 'USA-16', state: 'Idaho', dailyDeath: 0},
+						{id: 'USA-15', state: 'Hawaii', dailyDeath: 0},
+						{id: 'USA-13', state: 'Georgia', dailyDeath: 0},
+						{id: 'USA-12', state: 'Florida', dailyDeath: 0},
+						{id: 'USA-11', state: 'District of Columbia', dailyDeath: 0},
+						{id: 'USA-10', state: 'Delaware', dailyDeath: 0},
+						{id: 'USA-09', state: 'Connecticut', dailyDeath: 0},
+						{id: 'USA-08', state: 'Colorado', dailyDeath: 0},
+						{id: 'USA-06', state: 'California', dailyDeath: 0},
+						{id: 'USA-05', state: 'Arkansas', dailyDeath: 0},
+						{id: 'USA-04', state: 'Arizona', dailyDeath: 0},
+						{id: 'USA-02', state: 'Alaska', dailyDeath: 0},
+						{id: 'USA-01', state: 'Alabama', dailyDeath: 0}
+					];
+					//update template to form a new dataset we need to run everyday
+					let allNumber = [];
+
+					statesDailyDeaths.forEach(dateData => {
+						let ids = new Set(dateData.states.map(d => d.id));
+						dateData.states = [...dateData.states, ...Tem.filter(d => !ids.has(d.id))];
+						dateData.states.sort((a, b) => d3.ascending(a.state, b.state));
+						dateData.states.map(i => {
+							i.dailyDeath = Math.abs(i.dailyDeath);
+							allNumber.push(i.dailyDeath * 0.007)
+						} )
+					})
+
+					let StateDeath = [... new Set(allNumber)];
+					StateRange = d3.extent(StateDeath);
+
+					drawLine();
+					MAX = UsDailyDeath.length;
+
+					document.getElementById('myRange').max = MAX;
+
+					// Start bulb animation
+					animate();
+
+				})
+			}
+
+		}
+		function init() {
+
+			container = document.getElementById( 'container' );
+
+			// CAMERA
+
+			camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
+			 camera.position.set( - 500, 500, 1000 );
+
+			// SCENE
+
+			scene = new THREE.Scene();
+			scene.background = new THREE.Color( 0x050505 );
+
+			// LIGHTS
+			light = new THREE.DirectionalLight( 0xffffff );
+			light.position.set( 0.5, 0.5, 1 );
+			scene.add( light );
+
+			pointLight = new THREE.PointLight( 0xff3300 );
+			pointLight.position.set( 0, 0, 100 );
+			scene.add( pointLight );
+
+			ambientLight = new THREE.AmbientLight( 0xffffff );
+			scene.add( ambientLight );
+
+			// MATERIALS
+
+			materials = generateMaterials();
+			current_material = 'multiColors';
+
+			// MARCHING CUBES
+
+			effect = new MarchingCubes( 100, materials[ 'multiColors' ], true, true, 100000 );
+			effect.position.set( 0, 0, 0 );
+			// effect.position.set( 100, 100, 0 );
+			effect.scale.set( 300, 300, 300 );
+			// effect.scale.set( 100, 300, 300 );
+
+			effect.enableUvs = false;
+			effect.enableColors = true;
+			scene.add( effect );
+
+			// RENDERER
+
+			renderer = new THREE.WebGLRenderer();
+			renderer.outputEncoding = THREE.sRGBEncoding;
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			container.appendChild( renderer.domElement );
+
+			// CONTROLS
+
+			const controls = new OrbitControls( camera, renderer.domElement );
+			controls.minDistance = 200;
+			controls.maxDistance = 1500;
+
+			// TITLE
+			const cubeSize = 50;
+			const loader = new FontLoader();
+			const textMesh = new THREE.Mesh();
+			const createTypo = font => {
+				const word = "COVID Monument";
+				const typoProperties = {
+					font: font,
+					size: cubeSize,
+					height: cubeSize / 2,
+					curveSegments: 1,
+					bevelEnabled: true,
+					bevelThickness: 2,
+					bevelSize: 1,
+					bevelOffset: 1,
+					bevelSegments: 1
+				};
+				const text = new TextGeometry(word, typoProperties);
+				text.computeBoundingBox();
+
+				const mat = new THREE.ShaderMaterial({
+				uniforms: {
+				color1: {
+				value: new THREE.Color(0x9E2F7F)
+				},
+				color2: {
+				value: new THREE.Color(0xFDB078)
+				},
+				bboxMin: {
+				value: text.boundingBox.min
+				},
+				bboxMax: {
+				value: text.boundingBox.max
+				}
+				},
+				vertexShader: `
+				uniform vec3 bboxMin;
+				uniform vec3 bboxMax;
+
+				varying vec2 vUv;
+
+				void main() {
+				vUv.x = (position.x - bboxMin.x) / (bboxMax.x - bboxMin.x);
+				gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+				}
+				`,
+				fragmentShader: `
+				uniform vec3 color1;
+				uniform vec3 color2;
+
+				varying vec2 vUv;
+
+				void main() {
+
+				gl_FragColor = vec4(mix(color1, color2, vUv.x), 2.0);
+				}
+				`,
+				//lights: true,
+				wireframe: true
+				});
+
+				textMesh.geometry = text;
+				textMesh.material = mat;
+				textMesh.position.x = -290;
+				textMesh.position.y = -260;
+				textMesh.position.z = 350;
+				textMesh.rotateX(30);
+				scene.add(textMesh);
+			};
+
+			loader.load(
+			"https://threejs.org/examples/fonts/optimer_bold.typeface.json",
+			createTypo
+			);
+
+			// EVENTS
+
+			window.addEventListener( 'resize', onWindowResize );
+
+			loadData();
+			effect.isolation = 300;
+
+			const ball = new THREE.SphereGeometry( 5, 32, 16 );
+			//ball.translate(-300, -260, 300);
+			const ballmat = new THREE.MeshBasicMaterial( { color: 0xED0053 } );
+			sphere = new THREE.Mesh( ball, ballmat );
+
+			const niddlegeo = new THREE.CylinderGeometry( 0.6, 0.6, 570, 32 );
+			niddlegeo.rotateX(Math.PI/2);
+			niddlegeo.translate(0, 0, 300);
+			const niddlemat = new THREE.MeshBasicMaterial( {color: 0xED0053, transparent: true, opacity: 0.5} );
+			const cylinder = new THREE.Mesh( niddlegeo, niddlemat );
+
+			sphere.add(cylinder);
+			scene.add( sphere );
+
+		}
+
+		function drawLine(){
+
+			UsDailyDeath.map((d, i) => {
+				let x = scale(i, [0, UsDailyDeath.length], [-300, 300]);
+				let z = scale(d.dailyDeaths * 0.007, USRange, [300, -300] )
+				points.push( new THREE.Vector3( x, -260, z ));
+				points2.push(new THREE.Vector3( x, -260, -300 ))
+			})
+
+			for(let i = 0; i < points2.length; i++ ){
+				let lineSeg = new THREE.LineCurve3(
+					points2[i], points2[i+1]
+				);
+				if(i <= points2.length-2){
+					pointsPath.add(lineSeg);
+				}
+			}
+
+			const LineGeometry = new THREE.BufferGeometry().setFromPoints( points );
+			const LineMaterial = new THREE.LineBasicMaterial( {
+				color: 0xffffff,
+				transparent: true,
+				opacity: 0.2
+			} );
+
+			let line = new THREE.Line( LineGeometry, LineMaterial );
+			scene.add(line);
+		}
+
+		function onWindowResize() {
+
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize( window.innerWidth, window.innerHeight );
+
+		}
+
+		function generateMaterials() {
+
+			const materials = {
+				'multiColors': new THREE.MeshPhongMaterial( { shininess: 5, vertexColors: true } ),
+			};
+			return materials;
+		}
+
+		function scale( value, r1, r2){
+			 return ( value - r1[ 0 ] ) * ( r2[ 1 ] - r2[ 0 ] ) / ( r1[ 1 ] - r1[ 0 ] ) + r2[ 0 ];
+		}
+
+		function updateCubes( object, time, strength, floor ) {
+			object.reset();
+
+			const rainbow1 = [
+			new THREE.Color( 0xffffff ),
+			new THREE.Color( 0xfceaad ),
+			new THREE.Color( 0xf4695b ),
+			new THREE.Color( 0xff1700 ),
+			new THREE.Color( 0xFF2E78 ),
+			new THREE.Color( 0x86178E ),
+			new THREE.Color( 0x2F0E5B )
+			];
+
+			const rainbow2 = [
+			new THREE.Color( 0xFAEBC4 ),
+			new THREE.Color( 0xFFA800 ),
+			new THREE.Color( 0xFF7C56 ),
+			new THREE.Color( 0xFF758C ),
+			new THREE.Color( 0xED0053 ),
+			new THREE.Color( 0xA00053 ),
+			new THREE.Color( 0x771370 )
+			];
+
+			const subtract = 100;
+
+			if(viewPoint === 'US'){
+				const ballx = Math.sin( 0.4 + time * ( 1 + 0.5 * Math.cos( 0.1) )) * 0.1 + 0.5;
+				const bally = Math.abs( Math.cos( 0.5 * time * Math.cos( 0.9  ) ) ) * 0.3 + 0.24;
+				const ballz = Math.cos( 0.6 * time * 0.2 * Math.sin( ( 0.7 ) ) ) * 0.1 + 0.5;
+
+
+				let size = strength.dailyDeaths * 0.007;
+				let index = Math.round(scale(size, USRange, color));
+
+				object.addBall( ballx, bally, ballz, size, subtract, rainbow1[index] );
+			}
+			if(viewPoint === 'STATES'){
+				States.innerHTML = "";
+
+
+				const num = strength.length;
+				for (const [i, state] of strength.entries()){
+
+					const ballx = Math.sin( i + 1.76 * time * ( 1 + 0.5 * Math.cos( 0.2 - 0.1 * i ) ) ) * 0.3 + 0.5;
+					const bally = Math.abs( Math.cos( i + 5 * time * Math.cos( 1.22 + 0.5 * i ) ) ) * 0.32 + 0.24;
+					const ballz = Math.cos( i + 1.97 * time * 0.2 * Math.sin( ( 0.4 + 0.7 * i ) ) ) * 0.22 + 0.5;
+
+					let eachSize = state.dailyDeath * 0.007;
+					let index = Math.round(scale(eachSize, StateRange, color));
+
+					if(index >= 1){
+						 let State = document.createElement("li");
+						 State.appendChild(document.createTextNode(state.state +" "+ state.dailyDeath));
+						 States.appendChild(State);
+					}
+
+					object.addBall( ballx, bally, ballz, eachSize, subtract, rainbow2[index] );
+
+				}
+
+			}
+
+			if ( floor ) object.addPlaneY( 1, 12 );
+
+		}
+
+		function animate() {
+
+			requestAnimationFrame( animate );
+
+			render();
+		}
+
+
+		function render() {
+
+			const delta = clock.getDelta();
+			time += delta * 0.05;
+
+			//line
+			if(fraction< 1){
+				 fraction = RenderTimes / MAX;
+				 const newPosition=pointsPath.getPoint(fraction);
+				 sphere.position.copy(newPosition);
+			}
+
+
+			if( UsDailyDeath[RenderTimes] !== undefined && statesDailyDeaths[RenderTimes] !== undefined ){
+
+				let dateShow = document.getElementById('info')
+				let deathNumber = document.getElementById('deathNumber')
+				let dateString = UsDailyDeath[RenderTimes].date.toString().split(' GMT')[0]
+				let lastIndex = dateString.lastIndexOf(" ")
+
+				dateString = dateString.substring(0, lastIndex)
+				dateShow.innerText = dateString
+				deathNumber.innerText = UsDailyDeath[RenderTimes].dailyDeaths
+
+				if ( viewPoint === 'US') {
+
+				updateCubes( effect, time, UsDailyDeath[RenderTimes], true );
+				}
+
+				if( viewPoint === 'STATES'){
+
+				updateCubes( effect, time, statesDailyDeaths[RenderTimes].states, true );
+				}
+
+			}
+
+			if(isPlay){
+				const delta2 = clock.getDelta();
+				timeNew = timeNew + delta2;
+				if (Math.round(timeNew) - Math.round(timeOld) == 1){
+					RenderTimes++;
+					rangeInput.value = RenderTimes
+					timeOld = timeNew;
+				}
+			}
+
+			renderer.render( scene, camera );
+
+		}
+
+		//slide bar control
+		let rangeInput = document.getElementById('myRange');
+		//rangeInput.max = UsDailyDeath.length;
+		rangeInput.addEventListener("change", function() {
+		RenderTimes = rangeInput.value;
+		}, false);
+
+		// pause
+		let pause = document.getElementById('pause')
+		pause.addEventListener('click', () => {
+		if (isPlay) {
+		isPlay = false;
+		timeNew = 0;
+		timeOld = 0;
+		} else {
+		isPlay = true
+		}
+		})
+
+		// switch to national data
+		let switchUS = document.getElementById('switch-us');
+		switchUS.addEventListener('click', ()=>{
+		//isPlay = false
+		viewPoint = 'US'
+		States.innerHTML = "";
+		render()
+		})
+
+		// switch to states data
+		let switchStates = document.getElementById('switch-states');
+		switchStates.addEventListener('click', ()=>{
+		viewPoint = 'STATES'
+		//isPlay = false
+		render()
+		})
+
+
+
+
+</script>
+
+</body>
+</html>

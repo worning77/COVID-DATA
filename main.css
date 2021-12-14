@@ -1,0 +1,232 @@
+body {
+  margin: 0;
+  background-color: #000;
+  color: #fff;
+  font-family: Monospace;
+  font-size: 13px;
+  line-height: 24px;
+  overscroll-behavior: none;
+}
+
+a {
+  color: #ff0;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+#info {
+  position: absolute;
+  top: 0px;
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  text-align: center;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  pointer-events: none;
+  z-index: 1; /* TODO Solve this in HTML */
+}
+
+a,
+button,
+input,
+select {
+  pointer-events: auto;
+}
+
+.dg.ac {
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  z-index: 2 !important; /* TODO Solve this in HTML */
+}
+
+#overlay {
+  position: absolute;
+  font-size: 16px;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+#overlay button {
+  background: transparent;
+  border: 0;
+  border: 1px solid rgb(255, 255, 255);
+  border-radius: 4px;
+  color: #ffffff;
+  padding: 12px 18px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+#notSupported {
+  width: 50%;
+  margin: auto;
+  background-color: #f00;
+  margin-top: 20px;
+  padding: 10px;
+}
+
+.text {
+  font-size: 28px;
+}
+
+#title {
+  position: absolute;
+  top: 120px;
+  width: 100%;
+  color: #fff;
+  text-align: center;
+  z-index: 100;
+  display: block;
+}
+
+#states {
+  position: absolute;
+  top: 150px;
+  width: 100%;
+  color: #808080;
+  font-size: 20px;
+  text-align: center;
+  z-index: 100;
+  list-style: none;
+  display: block;
+  left: 50%;
+  transform: translate(-50%, -5%);
+}
+
+.btn-group {
+  position: absolute;
+  bottom: 20px;
+  display: flex;
+  flex-wrap: nowrap;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* width: 50%; */
+}
+
+.btn {
+  border-radius: 10px;
+  border: 1px solid #fff;
+  width: 150px;
+  height: 30px;
+}
+
+#pause {
+  /* position: absolute; */
+  top: 300px;
+  /* width: 100px; */
+  display: none;
+  margin-left: 50px;
+  color: #000;
+  text-align: center;
+  z-index: 100;
+  display: block;
+}
+
+#switch-us {
+  /* position: absolute; */
+  top: 100px;
+  /* width: 100px; */
+  margin-left: 50px;
+  color: #000;
+  text-align: center;
+  z-index: 100;
+  display: block;
+}
+
+#switch-states {
+  /* position: absolute; */
+  top: 200px;
+  /* width: 100px; */
+  margin-left: 50px;
+  color: #000;
+  text-align: center;
+  z-index: 100;
+  display: block;
+}
+
+#info {
+  /* position: absolute; */
+  /* top: 100px; */
+  top: 20px;
+  width: 100%;
+  color: #fff;
+  text-align: center;
+  z-index: 100;
+  display: block;
+}
+
+#myRange {
+  /* position: absolute; */
+  /* top: 50px;  */
+  width: 300px;
+  /* margin-left: 50px;/ */
+  color: #fff;
+  text-align: center;
+  z-index: 100;
+  display: block;
+
+  /* left: 50%;
+  transform: translate(-50%, -50%); */
+}
+
+.wrap-time {
+  display: flex;
+  flex-wrap: nowrap;
+  flex-direction: row;
+  position: absolute;
+  top: 50px;
+  width: 300px;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 15px;
+  border-radius: 5px;
+  background: #d3d3d3;
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: 0.2s;
+  transition: opacity 0.2s;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #ff4fce;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #ff4fce;
+  cursor: pointer;
+}
