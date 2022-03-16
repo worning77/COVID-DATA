@@ -11,7 +11,7 @@
 
 	<div id="container"></div>
 	<div class="wrap-time">
-		<input type="range" min="0" max="650" value="300" class="slider" id="myRange">
+		<input type="range" min="0" max="732" value="300" class="slider" id="myRange">
 		<div class="text" id="info">Description</div>
 	</div>
 	<div class="text" id="title">US Covid daily death <span id="deathNumber">0</span></div>
@@ -99,8 +99,14 @@
 			};
 
 			async function usLoad() {
-				let nationalCovidDataRaw = await d3.csv('https://raw.githubusercontent.com/nytimes/covid-19-data/master/rolling-averages/us.csv', d3.autoType)
-				let stateCovidDataRaw =  await d3.csv('https://raw.githubusercontent.com/nytimes/covid-19-data/master/rolling-averages/us-states.csv', d3.autoType)
+				let nationalCovidDataRaw = await d3.csv('https://raw.githubusercontent.com/nytimes/covid-19-data/master/rolling-averages/us.csv', d3.autoType);
+				nationalCovidDataRaw = nationalCovidDataRaw.slice(36, 768);
+
+				//console.log(nationalCovidDataRaw);
+
+				let stateCovidDataRaw =  await d3.csv('https://raw.githubusercontent.com/nytimes/covid-19-data/master/rolling-averages/us-states.csv', d3.autoType);
+
+				//stateCovidDataRaw = stateCovidDataRaw.slice(36, 767);
 
 				Promise.all([nationalCovidDataRaw, stateCovidDataRaw]).then(val => {
 					UsDailyDeath = val[0].map(data => {
@@ -109,6 +115,10 @@
 							dailyDeaths: data.deaths
 						};
 					});
+					//console.log(UsDailyDeath);
+
+					let totalTwoYear = d3.sum(UsDailyDeath, d => d.dailyDeaths);
+					console.log(totalTwoYear);
 
 					let USDeath = [...new Set(UsDailyDeath.map(d => d.dailyDeaths * 0.007))];
 					USRange = d3.extent(USDeath);
@@ -129,7 +139,8 @@
 								})
 							};
 						}
-					);
+					).slice(36, 768);
+
 					let stateDeath;
 					let Tem = [
 						{id: 'USA-60', state: 'American Samoa', dailyDeath: 0},
@@ -192,6 +203,8 @@
 					//update template to form a new dataset we need to run everyday
 					let allNumber = [];
 
+					//console.log(statesDailyDeaths);
+
 					statesDailyDeaths.forEach(dateData => {
 						let ids = new Set(dateData.states.map(d => d.id));
 						dateData.states = [...dateData.states, ...Tem.filter(d => !ids.has(d.id))];
@@ -207,6 +220,7 @@
 
 					drawLine();
 					MAX = UsDailyDeath.length;
+					//console.log(MAX);
 
 					document.getElementById('myRange').max = MAX;
 
@@ -252,9 +266,7 @@
 
 			effect = new MarchingCubes( 100, materials[ 'multiColors' ], true, true, 100000 );
 			effect.position.set( 0, 0, 0 );
-			// effect.position.set( 100, 100, 0 );
 			effect.scale.set( 300, 300, 300 );
-			// effect.scale.set( 100, 300, 300 );
 
 			effect.enableUvs = false;
 			effect.enableColors = true;
