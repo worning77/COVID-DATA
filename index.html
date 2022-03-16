@@ -514,7 +514,7 @@
 			time += delta * 0.05;
 
 			//line
-			if(fraction< 1){
+			if(fraction<= 1){
 				 fraction = RenderTimes / MAX;
 				 const newPosition=pointsPath.getPoint(fraction);
 				 sphere.position.copy(newPosition);
@@ -560,10 +560,10 @@
 
 		//slide bar control
 		let rangeInput = document.getElementById('myRange');
-		//rangeInput.max = UsDailyDeath.length;
-		rangeInput.addEventListener("change", function() {
-		RenderTimes = rangeInput.value;
-		}, false);
+		rangeInput.addEventListener('input', updateValue);
+		function updateValue(e) {
+			RenderTimes = e.target.value;
+		}
 
 		// pause
 		let pause = document.getElementById('pause')
